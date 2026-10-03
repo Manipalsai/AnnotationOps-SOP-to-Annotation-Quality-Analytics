@@ -46,3 +46,27 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Generated Image Binaries (Kept local, reproducible via scripts/generate_dataset.py)
+data/images/*.png
+data/images/*.jpg
+data/images/*.jpeg
+!data/images/.gitkeep
+
+# Generated Runtime Data (Reproducible via pipeline scripts — not source code)
+data/raw/*.json
+data/processed/*.jsonl
+data/rejected/*.jsonl
+data/gold/*.json
+data/manifest_tasks.json
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/rejected/.gitkeep
+!data/gold/.gitkeep
+
+# SQLite Warehouse Database (Generated — not source code)
+data/*.db
+data/*.sqlite
+
+# Streamlit local config (machine-specific)
+.streamlit/secrets.toml

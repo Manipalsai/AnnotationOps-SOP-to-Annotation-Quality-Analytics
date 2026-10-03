@@ -1,37 +1,39 @@
 -- ============================================================================
--- ANNOTATIONOPS: ANNOTATOR PERFORMANCE & QUALITY SCIENCE ANALYTICS
--- Purpose: Measure individual annotator productivity, rejection rate, and accuracy against gold standard.
+-- ANNOTATIONOPS: ANNOTATOR WORKFORCE PERFORMANCE ANALYTICS
+-- Purpose: Monitor individual and team productivity, accuracy against gold benchmark,
+--          rejection rates, rework rates, and operational shifts.
+-- Queries: 11 through 15
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. Annotator Productivity and Processing Time Summary
--- Answers: How many tasks has each annotator completed, and what is their average cycle time?
+-- 1. Complete Annotator Scorecard (Productivity, Speed, Quality, Rejections)
+-- Covers: Query 11 (Annotator Productivity), Query 12 (Annotator Quality),
+--         Query 13 (Gold Accuracy by Annotator)
 -- ----------------------------------------------------------------------------
-SELECT 
-    ann.annotator_id,
-    ann.display_name,
-    ann.role,
-    COUNT(a.annotation_id) AS tasks_completed,
-    ROUND(AVG(a.processing_time_seconds), 2) AS avg_processing_time_seconds,
-    ROUND(MIN(a.processing_time_seconds), 2) AS min_processing_time_seconds,
-    ROUND(MAX(a.processing_time_seconds), 2) AS max_processing_time_seconds,
-    SUM(CASE WHEN a.anomaly_flag IS NOT NULL THEN 1 ELSE 0 END) AS speed_anomaly_flags
-FROM annotators ann
-LEFT JOIN annotations a ON ann.annotator_id = a.annotator_id
-GROUP BY ann.annotator_id, ann.display_name, ann.role
-ORDER BY tasks_completed DESC;
-
--- ----------------------------------------------------------------------------
--- 2. Annotator Rejection Rate (Data Quality Screening)
--- Answers: Which annotators have high submission rejection rates at upstream validation gates?
--- ----------------------------------------------------------------------------
-WITH valid_counts AS (
-    SELECT annotator_id, COUNT(*) AS valid_count
+WITH valid_kpis AS (
+    SELECT 
+        annotator_id,
+        COUNT(*) AS total_completed,
+        ROUND(AVG(processing_time_seconds), 2) AS avg_cycle_time_sec,
+        SUM(is_rework) AS rework_count,
+        SUM(is_escalated) AS escalation_count,
+        SUM(CASE WHEN anomaly_flag IS NOT NULL THEN 1 ELSE 0 END) AS speed_anomalies
     FROM annotations
     GROUP BY annotator_id
 ),
-rejected_counts AS (
-    SELECT annotator_id, COUNT(*) AS rejected_count
+gold_eval AS (
+    SELECT 
+        a.annotator_id,
+        COUNT(*) AS gold_tasks_reviewed,
+        SUM(CASE WHEN a.condition = g.ground_truth_condition THEN 1 ELSE 0 END) AS gold_correct
+    FROM annotations a
+    JOIN gold_annotations g ON a.task_id = g.task_id
+    GROUP BY a.annotator_id
+),
+rejections AS (
+    SELECT 
+        annotator_id,
+        COUNT(*) AS rejections_blocked
     FROM rejection_audit
     WHERE annotator_id IS NOT NULL
     GROUP BY annotator_id
@@ -39,62 +41,83 @@ rejected_counts AS (
 SELECT 
     ann.annotator_id,
     ann.display_name,
-    COALESCE(vc.valid_count, 0) AS valid_submissions,
-    COALESCE(rc.rejected_count, 0) AS rejected_submissions,
-    (COALESCE(vc.valid_count, 0) + COALESCE(rc.rejected_count, 0)) AS total_submissions_attempted,
+    ann.role,
+    ann.team,
+    ann.shift,
+    ann.experience_level,
+    COALESCE(v.total_completed, 0) AS tasks_completed,
+    COALESCE(v.avg_cycle_time_sec, 0.0) AS avg_duration_sec,
+    COALESCE(r.rejections_blocked, 0) AS rejections_count,
     ROUND(
-        COALESCE(rc.rejected_count, 0) * 100.0 / 
-        NULLIF(COALESCE(vc.valid_count, 0) + COALESCE(rc.rejected_count, 0), 0),
+        COALESCE(r.rejections_blocked, 0) * 100.0 / 
+        NULLIF(COALESCE(v.total_completed, 0) + COALESCE(r.rejections_blocked, 0), 0),
         2
-    ) AS annotator_rejection_rate_pct
+    ) AS rejection_rate_pct,
+    COALESCE(v.rework_count, 0) AS rework_count,
+    ROUND(
+        COALESCE(v.rework_count, 0) * 100.0 / NULLIF(COALESCE(v.total_completed, 0), 0),
+        2
+    ) AS rework_rate_pct,
+    COALESCE(g.gold_tasks_reviewed, 0) AS gold_tasks_evaluated,
+    ROUND(
+        COALESCE(g.gold_correct, 0) * 100.0 / NULLIF(COALESCE(g.gold_tasks_reviewed, 0), 0),
+        2
+    ) AS gold_accuracy_pct,
+    -- Performance Quadrant Flagging
+    CASE 
+        WHEN (COALESCE(g.gold_correct, 0) * 100.0 / NULLIF(COALESCE(g.gold_tasks_reviewed, 0), 0)) >= 95.0 
+             AND COALESCE(v.total_completed, 0) >= 2000 THEN 'HIGH_PERFORMER'
+        WHEN (COALESCE(g.gold_correct, 0) * 100.0 / NULLIF(COALESCE(g.gold_tasks_reviewed, 0), 0)) < 92.0 THEN 'CALIBRATION_PRIORITY'
+        ELSE 'STANDARD_COMPLIANT'
+    END AS operational_quadrant
 FROM annotators ann
-LEFT JOIN valid_counts vc ON ann.annotator_id = vc.annotator_id
-LEFT JOIN rejected_counts rc ON ann.annotator_id = rc.annotator_id
-ORDER BY annotator_rejection_rate_pct DESC;
+LEFT JOIN valid_kpis v ON ann.annotator_id = v.annotator_id
+LEFT JOIN gold_eval g ON ann.annotator_id = g.annotator_id
+LEFT JOIN rejections r ON ann.annotator_id = r.annotator_id
+ORDER BY tasks_completed DESC;
 
 -- ----------------------------------------------------------------------------
--- 3. Annotator Accuracy on Blind Gold Benchmark Set
--- Answers: For tasks where an authoritative gold ground-truth label exists,
---          what is each annotator's classification accuracy and error rate?
--- Target: >= 95.0% Accuracy
+-- 2. Team and Operational Shift Performance Comparison
+-- Covers: Query 14 (Shift & Team Variance)
 -- ----------------------------------------------------------------------------
 SELECT 
-    a.annotator_id,
-    ann.display_name,
-    COUNT(*) AS gold_tasks_evaluated,
-    SUM(CASE WHEN a.condition = g.ground_truth_condition THEN 1 ELSE 0 END) AS correct_primary_labels,
-    SUM(CASE WHEN a.condition != g.ground_truth_condition THEN 1 ELSE 0 END) AS primary_label_errors,
+    ann.team,
+    ann.shift,
+    COUNT(DISTINCT ann.annotator_id) AS active_annotators,
+    COUNT(a.annotation_id) AS total_shift_volume,
+    ROUND(AVG(a.processing_time_seconds), 2) AS avg_shift_cycle_time_sec,
     ROUND(
-        SUM(CASE WHEN a.condition = g.ground_truth_condition THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+        SUM(CASE WHEN a.condition = g.ground_truth_condition THEN 1 ELSE 0 END) * 100.0 / 
+        NULLIF(COUNT(g.task_id), 0), 
+        2
+    ) AS shift_gold_accuracy_pct
+FROM annotators ann
+JOIN annotations a ON ann.annotator_id = a.annotator_id
+LEFT JOIN gold_annotations g ON a.task_id = g.task_id
+GROUP BY ann.team, ann.shift
+ORDER BY ann.team, ann.shift;
+
+-- ----------------------------------------------------------------------------
+-- 3. Experience Tier Productivity & Error Rate Distribution
+-- Covers: Query 15 (Seniority & Experience Impact)
+-- ----------------------------------------------------------------------------
+SELECT 
+    ann.experience_level,
+    COUNT(DISTINCT ann.annotator_id) AS annotator_count,
+    COUNT(a.annotation_id) AS annotations_completed,
+    ROUND(AVG(a.processing_time_seconds), 2) AS mean_duration_sec,
+    ROUND(
+        SUM(CASE WHEN a.condition = g.ground_truth_condition THEN 1 ELSE 0 END) * 100.0 / 
+        NULLIF(COUNT(g.task_id), 0),
         2
     ) AS gold_accuracy_pct,
     ROUND(
-        SUM(CASE WHEN a.condition != g.ground_truth_condition THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+        100.0 - (SUM(CASE WHEN a.condition = g.ground_truth_condition THEN 1 ELSE 0 END) * 100.0 / 
+        NULLIF(COUNT(g.task_id), 0)),
         2
-    ) AS error_rate_pct,
-    CASE 
-        WHEN (SUM(CASE WHEN a.condition = g.ground_truth_condition THEN 1 ELSE 0 END) * 1.0 / COUNT(*)) >= 0.95 
-        THEN 'BENCHMARK_EXCEEDED'
-        WHEN (SUM(CASE WHEN a.condition = g.ground_truth_condition THEN 1 ELSE 0 END) * 1.0 / COUNT(*)) >= 0.85 
-        THEN 'MEETS_ACCEPTABLE'
-        ELSE 'COACHING_REQUIRED'
-    END AS operational_quality_tier
-FROM annotations a
-JOIN gold_annotations g ON a.task_id = g.task_id
-JOIN annotators ann ON a.annotator_id = ann.annotator_id
-GROUP BY a.annotator_id, ann.display_name
+    ) AS error_rate_pct
+FROM annotators ann
+JOIN annotations a ON ann.annotator_id = a.annotator_id
+LEFT JOIN gold_annotations g ON a.task_id = g.task_id
+GROUP BY ann.experience_level
 ORDER BY gold_accuracy_pct DESC;
-
--- ----------------------------------------------------------------------------
--- 4. Gold Error Breakdown by Condition Category
--- Answers: Which conditions are most frequently confused or mislabeled against gold standards?
--- ----------------------------------------------------------------------------
-SELECT 
-    g.ground_truth_condition AS true_condition,
-    a.condition AS annotated_condition,
-    COUNT(*) AS pair_frequency,
-    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM annotations a2 JOIN gold_annotations g2 ON a2.task_id = g2.task_id), 2) AS share_of_gold_evaluations
-FROM annotations a
-JOIN gold_annotations g ON a.task_id = g.task_id
-GROUP BY g.ground_truth_condition, a.condition
-ORDER BY pair_frequency DESC;

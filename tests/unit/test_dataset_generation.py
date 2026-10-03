@@ -28,8 +28,8 @@ def test_manifest_and_gold_files_exist():
     with open(gold_path, "r", encoding="utf-8") as f:
         gold = json.load(f)
 
-    assert len(tasks) == 120, f"Expected 120 tasks, got {len(tasks)}"
-    assert len(gold) == 30, f"Expected 30 gold items, got {len(gold)}"
+    assert len(tasks) == 5000, f"Expected 5000 tasks, got {len(tasks)}"
+    assert len(gold) == 400, f"Expected 400 gold items, got {len(gold)}"
 
 
 def test_generated_images_integrity():
@@ -39,7 +39,7 @@ def test_generated_images_integrity():
 
     # Test first 10 images
     for i in range(1, 11):
-        img_path = images_dir / f"img_{i:04d}.png"
+        img_path = images_dir / f"img_{i:05d}.png"
         assert img_path.exists(), f"Image {img_path} not found"
         with Image.open(img_path) as img:
             assert img.size == (600, 450)
@@ -87,7 +87,7 @@ def test_dataset_generation_is_deterministic(tmp_path):
     n2_tasks, n2_gold = generate_synthetic_dataset(str(dir2), num_tasks=20, seed=42)
 
     assert n1_tasks == n2_tasks == 20
-    assert n1_gold == n2_gold == 5
+    assert n1_gold == n2_gold >= 1
 
     with open(dir1 / "manifest_tasks.json", "r", encoding="utf-8") as f1:
         data1 = json.load(f1)

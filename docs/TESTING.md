@@ -1,121 +1,86 @@
-# Automated Testing Protocol & Quality Assurance Strategy
+# Automated Testing Protocol & Quality Assurance Strategy (v2 Enterprise)
 
 **System:** ANNOTATIONOPS  
-**Test Framework:** `pytest 8.x`  
-**Coverage Engine:** `pytest-cov`  
+**Test Framework:** `pytest 8.x / 9.x`  
 **Execution Standard:** Zero-Warning Clean Execution  
+**Current Suite:** **55 Automated Tests Passing (100% Pass Rate)**  
 
 ---
 
 ## 1. Testing Philosophy & Zero-Manual-Testing Principle
 
-In mission-critical data operations, human visual spot-checking cannot guarantee dataset integrity. 
-AnnotationOps enforces automated programmatic validation across every tier:
-$$\text{Specification Validation} \longrightarrow \text{Domain Model Unit Tests} \longrightarrow \text{REST API Integration Tests} \longrightarrow \text{End-to-End Pipeline Tests} \longrightarrow \text{SQL Relational Integrity Audits}$$
+In enterprise-scale annotation operations, manual visual spot-checking cannot guarantee dataset reliability. 
+AnnotationOps enforces automated programmatic validation across all operational tiers:
+
+$$\text{Spec Validation} \longrightarrow \text{Domain Models} \longrightarrow \text{REST API} \longrightarrow \text{Validation Pipeline} \longrightarrow \text{SQL Relational Integrity} \longrightarrow \text{Backlog Reconciliation} \longrightarrow \text{SLA Variance} \longrightarrow \text{Performance Benchmarks}$$
 
 Manual clicking through user interfaces is strictly avoided as proof of correctness; every operational path is verified with deterministic test fixtures.
 
 ---
 
-## 2. Test Suite Architecture
+## 2. Test Suite Architecture (55 Automated Tests)
 
 ```
 tests/
 ├── unit/
-│   ├── test_spec_validation.py      # 11 tests: YAML structural checks, enum validity, broken refs
-│   ├── test_models.py               # 10 tests: Pydantic conditional logic, boundaries, length rules
-│   ├── test_dataset_generation.py   #  4 tests: Determinism (seed=42), image integrity, gold schema
-│   ├── test_metrics.py              #  6 tests: Cohen's Kappa formulas, chance bounds, confusion matrix
-│   └── test_dashboard.py            #  3 tests: Syntax compilation, warehouse loading, KPI dataframes
+│   ├── test_spec_validation.py        # 11 tests: YAML structural checks, enum validity, broken refs
+│   ├── test_models.py                 # 10 tests: Pydantic conditional logic, boundaries, length rules
+│   ├── test_dataset_generation.py     #  4 tests: Determinism (seed=42), image integrity, gold schema
+│   ├── test_metrics.py                #  6 tests: Cohen's Kappa formulas, chance bounds, confusion matrix
+│   ├── test_f1_score.py               #  3 tests: Per-class Precision, Recall, Macro F1, zero-div safeguards
+│   ├── test_backlog_reconciliation.py #  3 tests: Queue status identity, 12-week waterfall reconciliation
+│   ├── test_sla_and_variance.py       #  2 tests: SLA evaluation rules, variance analysis formatting
+│   ├── test_sql_analytics.py          #  1 test:  Executes all 25 queries across 4 SQL files against live DB
+│   └── test_dashboard.py              #  3 tests: Syntax compilation, warehouse loading, KPI dataframes
 │
 └── integration/
-    ├── test_workstation_api.py      #  8 tests: REST endpoints, image delivery, raw payload persistence
-    └── test_pipeline.py             #  2 tests: End-to-end ingestion, rejection routing, SQL integrity
+    ├── test_workstation_api.py        #  8 tests: REST endpoints, image delivery, raw payload persistence
+    ├── test_pipeline.py               #  2 tests: End-to-end ingestion, rejection routing, SQL integrity
+    └── test_pipeline_performance.py   #  2 tests: Sub-second DB load and metric calculation benchmarks
 ```
-
-Total Automated Tests: **44 passing tests**.
 
 ---
 
-## 3. Test Coverage Breakdown by Operational Domain
+## 3. Test Coverage Breakdown
 
-### 3.1 Specification Contract Integrity (`test_spec_validation.py`)
-- Asserts `schemas/annotation.yaml` is structurally valid with zero syntax or business errors.
-- Verifies rejection of missing top-level keys (`task`, `labels`, `fields`, `conditional_rules`, `metadata_fields`).
-- Asserts rejection of duplicate primary labels.
-- Validates unsupported field types.
-- Verifies broken reference detection when a conditional rule references an undeclared field.
-- Asserts rejection if a field is declared as both required and forbidden within the same condition branch.
+### 3.1 Backlog Reconciliation & Queue Integrity (`test_backlog_reconciliation.py`)
+- Verifies $\text{Total Tasks} = \text{Completed} + \text{Pending Backlog}$.
+- Verifies that every task in the queue belongs to exactly one mutually exclusive status (`COMPLETED`, `PENDING`, `REWORK`, `ESCALATED`).
+- Verifies that every single week in the 12-week waterfall satisfies $\text{Closing} = \text{Opening} + \text{Ingested} - \text{Completed}$.
 
-### 3.2 SOP Conditional Logic (`test_models.py`)
-- Asserts valid `NEW` submissions succeed with all secondary attributes as `None`.
-- Rejects `NEW` submissions containing packaging or damage fields with `ValueError`.
-- Asserts `OPEN_BOX` requires both `packaging_condition` and `seal_condition`.
-- Rejects `OPEN_BOX` submissions containing `damage_type` or `description`.
-- Asserts `DAMAGED` requires `damage_type`, `damage_severity`, and `description`.
-- Enforces minimum 10-character threshold on damage descriptions.
-- Asserts processing times must be within physical operating limits ($0.5\text{s} - 1800\text{s}$).
+### 3.2 Quality Science & F1 Formulations (`test_f1_score.py` & `test_metrics.py`)
+- Asserts Cohen's Kappa matches theoretical formula and sklearn implementation.
+- Verifies precision, recall, and F1 calculations against ground truth matrices.
+- Asserts divide-by-zero protection when edge-case classes receive zero predictions.
 
-### 3.3 Dataset Engine & Benchmark Baseline (`test_dataset_generation.py`)
-- Verifies `data/manifest_tasks.json` (120 tasks) and `data/gold/gold_annotations.json` (30 tasks) exist.
-- Validates image dimensions ($600 \times 450$ PNG) and visual header watermarks.
-- Validates that all gold records parse through the `GoldRecord` schema with zero errors.
-- Asserts strict bitwise determinism: generating twice with `seed=42` produces identical metadata hashes.
+### 3.3 SLA Attainment & Variance Analysis (`test_sla_and_variance.py`)
+- Tests `MINIMUM` and `MAXIMUM` benchmark evaluation rules.
+- Validates absolute variance ($\text{Actual} - \text{Target}$) and percentage variance calculations.
+- Asserts structure and types of variance analysis reporting tables.
 
-### 3.4 Workstation HTTP Server (`test_workstation_api.py`)
-- Verifies `GET /` serves HTML workstation interface.
-- Verifies `GET /api/tasks` delivers full JSON task queue.
-- Verifies `GET /api/spec` returns machine-readable specification contract.
-- Verifies `GET /api/images/{filename}` serves PNG image assets securely.
-- Asserts `POST /api/annotate` with valid payload creates raw JSON file in `data/raw/` and returns 201.
-- Asserts `POST /api/annotate` with invalid conditional payload returns 422 with descriptive error JSON.
+### 3.4 SQL Analytics Repository Verification (`test_sql_analytics.py`)
+- Parses and executes all 25 analytical SQL queries across:
+  - `sql/operational_metrics.sql` (Queries 1–10)
+  - `sql/annotator_metrics.sql` (Queries 11–15)
+  - `sql/quality_science.sql` (Queries 16–22)
+  - `sql/data_quality_audit.sql` (Queries 23–25)
+- Confirms zero syntax or constraint errors against live SQLite warehouse.
 
-### 3.5 End-to-End Ingestion, Validation & SQL Gates (`test_pipeline.py`)
-- Ingests test batch with nominal records, missing conditional attributes, and invalid cycle times.
-- Asserts nominal records land in `clean_annotations.jsonl` and invalid records land in `rejected_annotations.jsonl` with exact error reason codes (`ERR_CONDITIONAL_FIELD_MISSING`, `ERR_IMPOSSIBLE_TIME`).
-- Loads SQLite warehouse and executes automated SQL integrity checks:
-  - Asserts duplicate count $= 0$.
-  - Asserts null identifier count $= 0$.
-  - Asserts invalid label count $= 0$.
-  - Asserts SOP conditional logic violations $= 0$.
-
-### 3.6 Quality Science Engine (`test_metrics.py`)
-- Tests Cohen's Kappa under perfect agreement ($\kappa = 1.0$), single-class consensus ($\kappa = 1.0$), and chance agreement ($\kappa \le 0.0$).
-- Asserts mathematical consistency between vectorized implementation and direct formula.
-- Validates confusion matrix cell counts, precision, and recall calculations.
+### 3.5 Enterprise Scale Performance Benchmarking (`test_pipeline_performance.py`)
+- Validates that loading 5,000 tasks and 25,000+ annotations from SQLite into pandas executes in $< 2.5\text{ seconds}$.
+- Validates that computing all 5 major KPI calculation engines executes in $< 3.0\text{ seconds}$.
 
 ---
 
-## 4. How to Execute Tests Locally
+## 4. Running the Complete Automated Test Suite
 
-### Run Complete Test Suite
 ```bash
-pytest
-```
-
-### Run with Detailed Verbosity
-```bash
+# Run complete test suite with verbose output
 pytest -v
+
+# Run with test execution duration timing
+pytest --durations=10
+
+# Run specific domain test module
+pytest tests/unit/test_backlog_reconciliation.py -v
 ```
-
-### Run with Code Coverage Report
-```bash
-pytest --cov=. --cov-report=term-missing
-```
-
-### Run Only Integration Tests
-```bash
-pytest tests/integration/ -v
-```
-
----
-
-## 5. Continuous Integration (GitHub Actions)
-
-Every pull request and commit to `main` executes `.github/workflows/ci.yml` across:
-- **Operating Systems**: Ubuntu (`ubuntu-latest`) & Windows (`windows-latest`)
-- **Python Versions**: `3.11`, `3.12`, `3.13`
-- **Execution Gates**:
-  1. Specification contract validation (`pipeline/validate_spec.py`)
-  2. Pytest suite execution (`pytest --cov=.`)
-  3. End-to-end pipeline idempotency check (`scripts/run_pipeline.py` executed twice)

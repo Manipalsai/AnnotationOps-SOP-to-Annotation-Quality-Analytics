@@ -18,8 +18,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Generate deterministic baseline dataset and initialize warehouse
-RUN python scripts/generate_dataset.py --num-tasks 120 --seed 42 && \
-    python scripts/simulate_annotations.py --count 110 --seed 42 && \
+RUN python scripts/generate_dataset.py --num-assets 5000 --seed 42 && \
+    python scripts/simulate_annotations.py --count 25000 --seed 42 && \
     python scripts/run_pipeline.py
 
 # Expose Streamlit dashboard (8501) and Workstation API (8000)

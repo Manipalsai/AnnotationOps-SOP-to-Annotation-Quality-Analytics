@@ -1,30 +1,83 @@
 -- ============================================================================
 -- ANNOTATIONOPS: OPERATIONAL KPIS & THROUGHPUT ANALYTICS
 -- Purpose: Monitor workflow velocity, pending backlog, cycle times, and operational SLA adherence.
+-- Queries: 1 through 10
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. High-Level Operations Overview (Queue, Completed, Backlog, Completion Rate)
--- Answers: What is the current operational status of the total task queue?
+-- 1. Total Task Volume, Completed Tasks, Backlog, and Completion Rate
+-- Covers: Query 1 (Total Task Volume), Query 2 (Completed Tasks),
+--         Query 3 (Backlog), Query 4 (Completion Rate)
 -- ----------------------------------------------------------------------------
-WITH queue_stats AS (
-    SELECT COUNT(*) AS total_tasks FROM tasks
-),
-completed_stats AS (
-    SELECT COUNT(DISTINCT task_id) AS completed_tasks FROM annotations
+WITH queue_summary AS (
+    SELECT 
+        COUNT(*) AS total_tasks,
+        SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_tasks,
+        SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) AS pending_backlog,
+        SUM(CASE WHEN status = 'REWORK' THEN 1 ELSE 0 END) AS rework_tasks,
+        SUM(CASE WHEN status = 'ESCALATED' THEN 1 ELSE 0 END) AS escalated_tasks
+    FROM tasks
 )
 SELECT 
-    q.total_tasks,
-    c.completed_tasks,
-    (q.total_tasks - c.completed_tasks) AS pending_backlog,
-    ROUND(c.completed_tasks * 100.0 / NULLIF(q.total_tasks, 0), 2) AS completion_rate_pct
-FROM queue_stats q
-CROSS JOIN completed_stats c;
+    total_tasks,
+    completed_tasks,
+    pending_backlog,
+    rework_tasks,
+    escalated_tasks,
+    ROUND(completed_tasks * 100.0 / NULLIF(total_tasks, 0), 2) AS completion_rate_pct,
+    -- Backlog reconciliation check
+    (completed_tasks + pending_backlog + rework_tasks + escalated_tasks = total_tasks) AS is_reconciled
+FROM queue_summary;
 
 -- ----------------------------------------------------------------------------
--- 2. Overall Pipeline Rejection Rate
--- Answers: What percentage of total submission volume fails automated validation gates?
--- Target SLA: < 2.0%
+-- 2. Daily Throughput and Cycle Time
+-- Covers: Query 5 (Daily Throughput)
+-- ----------------------------------------------------------------------------
+SELECT 
+    SUBSTR(annotation_timestamp, 1, 10) AS operational_date,
+    COUNT(*) AS daily_volume_completed,
+    ROUND(AVG(processing_time_seconds), 2) AS avg_cycle_time_seconds,
+    SUM(is_rework) AS rework_events,
+    SUM(is_escalated) AS escalation_events
+FROM annotations
+GROUP BY SUBSTR(annotation_timestamp, 1, 10)
+ORDER BY operational_date ASC;
+
+-- ----------------------------------------------------------------------------
+-- 3. Weekly Throughput Velocity
+-- Covers: Query 6 (Weekly Throughput)
+-- ----------------------------------------------------------------------------
+SELECT 
+    CAST(((STRFTIME('%s', annotation_timestamp) - STRFTIME('%s', '2026-07-06 08:00:00')) / (7 * 86400)) + 1 AS INT) AS week_number,
+    COUNT(*) AS weekly_throughput_volume,
+    COUNT(DISTINCT task_id) AS distinct_tasks_completed,
+    ROUND(AVG(processing_time_seconds), 2) AS avg_cycle_time_seconds,
+    ROUND(COUNT(*) * 1.0 / 7, 1) AS avg_daily_rate_this_week
+FROM annotations
+GROUP BY week_number
+ORDER BY week_number ASC;
+
+-- ----------------------------------------------------------------------------
+-- 4. Average and Median Cycle Time
+-- Covers: Query 7 (Average Cycle Time), Query 8 (Median Cycle Time)
+-- ----------------------------------------------------------------------------
+WITH ordered_durations AS (
+    SELECT 
+        processing_time_seconds,
+        ROW_NUMBER() OVER (ORDER BY processing_time_seconds) AS row_num,
+        COUNT(*) OVER () AS total_count
+    FROM annotations
+)
+SELECT 
+    ROUND((SELECT AVG(processing_time_seconds) FROM annotations), 2) AS avg_cycle_time_sec,
+    ROUND(AVG(processing_time_seconds), 2) AS median_cycle_time_sec
+FROM ordered_durations
+WHERE row_num IN ((total_count + 1) / 2, (total_count + 2) / 2);
+
+-- ----------------------------------------------------------------------------
+-- 5. Overall Pipeline Rejection Rate
+-- Covers: Query 9 (Rejection Rate)
+-- Target SLA: < 3.0%
 -- ----------------------------------------------------------------------------
 WITH totals AS (
     SELECT 
@@ -39,44 +92,31 @@ SELECT
         total_rejected_submissions * 100.0 / 
         NULLIF(total_valid_submissions + total_rejected_submissions, 0), 
         2
-    ) AS pipeline_rejection_rate_pct
+    ) AS pipeline_rejection_rate_pct,
+    -- Simulated Target SLA Comparison
+    3.0 AS target_max_rejection_rate_pct,
+    CASE 
+        WHEN (total_rejected_submissions * 100.0 / NULLIF(total_valid_submissions + total_rejected_submissions, 0)) <= 3.0 
+        THEN 'SLA MET' 
+        ELSE 'SLA BREACH' 
+    END AS rejection_sla_status
 FROM totals;
 
 -- ----------------------------------------------------------------------------
--- 3. Cycle Time / Processing Duration Statistics (Nominal vs. Extreme)
--- Answers: What is the average, minimum, maximum cycle time per task?
+-- 6. Rework and Escalation Operational Volume
+-- Covers: Query 10 (Rework Rate)
 -- ----------------------------------------------------------------------------
 SELECT 
-    COUNT(*) AS total_annotations_measured,
-    ROUND(AVG(processing_time_seconds), 2) AS avg_processing_time_seconds,
-    ROUND(MIN(processing_time_seconds), 2) AS min_processing_time_seconds,
-    ROUND(MAX(processing_time_seconds), 2) AS max_processing_time_seconds
-FROM annotations;
-
--- ----------------------------------------------------------------------------
--- 4. Daily Operational Throughput Trend
--- Answers: How many annotations are completed per day, and what is the day-over-day cycle time?
--- ----------------------------------------------------------------------------
-SELECT 
-    SUBSTR(annotation_timestamp, 1, 10) AS annotation_date,
-    COUNT(DISTINCT task_id) AS unique_tasks_completed,
-    COUNT(*) AS total_submissions,
-    ROUND(AVG(processing_time_seconds), 2) AS avg_duration_seconds
-FROM annotations
-GROUP BY SUBSTR(annotation_timestamp, 1, 10)
-ORDER BY annotation_date ASC;
-
--- ----------------------------------------------------------------------------
--- 5. Throughput by Product Category
--- Answers: Which product categories experience higher volume or require longer inspection?
--- ----------------------------------------------------------------------------
-SELECT 
-    COALESCE(t.product_category, 'Uncategorized') AS product_category,
-    COUNT(a.annotation_id) AS total_annotations,
-    ROUND(AVG(a.processing_time_seconds), 2) AS avg_duration_seconds,
-    SUM(CASE WHEN a.condition = 'DAMAGED' THEN 1 ELSE 0 END) AS damaged_count,
-    ROUND(SUM(CASE WHEN a.condition = 'DAMAGED' THEN 1 ELSE 0 END) * 100.0 / COUNT(a.annotation_id), 1) AS damage_rate_pct
-FROM annotations a
-JOIN tasks t ON a.task_id = t.task_id
-GROUP BY t.product_category
-ORDER BY total_annotations DESC;
+    COUNT(*) AS total_completed_tasks,
+    SUM(CASE WHEN status = 'REWORK' THEN 1 ELSE 0 END) AS rework_tasks,
+    SUM(CASE WHEN status = 'ESCALATED' THEN 1 ELSE 0 END) AS escalated_tasks,
+    ROUND(
+        SUM(CASE WHEN status = 'REWORK' THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+        2
+    ) AS rework_rate_pct,
+    ROUND(
+        SUM(CASE WHEN status = 'ESCALATED' THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+        2
+    ) AS escalation_rate_pct
+FROM tasks
+WHERE status != 'PENDING';

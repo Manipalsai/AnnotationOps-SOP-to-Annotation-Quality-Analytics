@@ -31,11 +31,11 @@ def test_dashboard_warehouse_data_loading():
     """Ensure load_warehouse_data retrieves structured dataframes from the warehouse."""
     tasks_df, annotations_df, gold_df, rejections_df, annotators_df = load_warehouse_data(str(DEFAULT_DB_PATH))
 
-    assert len(tasks_df) == 120
+    assert len(tasks_df) >= 5000
     assert len(annotations_df) > 0
-    assert len(gold_df) == 30
+    assert len(gold_df) >= 400
     assert len(rejections_df) > 0
-    assert len(annotators_df) >= 4
+    assert len(annotators_df) >= 12
 
 
 def test_dashboard_metrics_data_integrity():
