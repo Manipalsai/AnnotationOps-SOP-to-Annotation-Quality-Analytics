@@ -27,6 +27,9 @@ import random
 from pathlib import Path
 from PIL import Image, ImageDraw
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_DATA_DIR = BASE_DIR / "data"
+
 DEFAULT_SEED = 42
 DEFAULT_NUM_ASSETS = 5_000
 DEFAULT_GOLD_RATIO = 0.08
@@ -216,6 +219,8 @@ def generate_synthetic_dataset(
         num_assets = num_tasks
     rng = random.Random(seed)
     base_path = Path(output_dir)
+    if not base_path.is_absolute():
+        base_path = (BASE_DIR / base_path).resolve()
     images_dir = base_path / "images"
     gold_dir = base_path / "gold"
     gold_dir.mkdir(parents=True, exist_ok=True)

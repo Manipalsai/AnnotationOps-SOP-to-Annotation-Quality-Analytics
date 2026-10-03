@@ -67,6 +67,13 @@ data/manifest_tasks.json
 # SQLite Warehouse Database (Generated — not source code)
 data/*.db
 data/*.sqlite
+*.db
+*.sqlite
+*.sqlite3
 
-# Streamlit local config (machine-specific)
+# Environment and secrets
+.env
+.env.*
+secrets.toml
 .streamlit/secrets.toml
+

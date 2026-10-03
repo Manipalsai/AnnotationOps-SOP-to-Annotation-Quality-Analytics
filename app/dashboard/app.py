@@ -28,6 +28,7 @@ sys.path = [p for p in sys.path if not p.endswith("ANNOTATIONOPS")]
 sys.path.insert(0, str(BASE_DIR))
 
 from pipeline.database import DEFAULT_DB_PATH
+from pipeline.bootstrap import verify_database_integrity, bootstrap_warehouse
 
 DISCLOSURE_TEXT = (
     "ℹ️ <strong>Enterprise Simulation Disclosure:</strong> "
@@ -451,9 +452,10 @@ def render_dashboard():
     )
 
     db_path = str(DEFAULT_DB_PATH)
-    if not Path(db_path).exists():
-        st.error(f"Warehouse database not found at `{db_path}`. Run `python scripts/run_pipeline.py` first.")
-        st.stop()
+    is_valid, _, _ = verify_database_integrity(db_path)
+    if not is_valid:
+        with st.spinner("📦 First-time deployment detected: initializing analytics warehouse (seed=42)..."):
+            bootstrap_warehouse(db_path=db_path)
 
     tasks_df, annotations_df, gold_df, rejections_df, annotators_df = load_warehouse_data(db_path)
     events_df, targets_df = load_auxiliary_data(db_path)

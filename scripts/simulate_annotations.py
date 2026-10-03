@@ -251,25 +251,33 @@ def simulate_enterprise_operations(
     target_clean: int = 25000,
     seed: int = DEFAULT_SEED,
     num_raw_samples: int = 60,
+    data_dir: Path | str | None = None,
 ) -> dict[str, int]:
     """
     Run full 12-week operational simulation.
     Produces clean annotations JSONL, rejected audit JSONL, and a sample of raw JSON files.
     """
     rng = random.Random(seed)
-    PROCESSED_FILE.parent.mkdir(parents=True, exist_ok=True)
-    REJECTED_FILE.parent.mkdir(parents=True, exist_ok=True)
-    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    base_data = Path(data_dir) if data_dir is not None else DATA_DIR
+    processed_file = base_data / "processed" / "clean_annotations.jsonl"
+    rejected_file = base_data / "rejected" / "rejected_annotations.jsonl"
+    manifest_file = base_data / "manifest_tasks.json"
+    gold_file = base_data / "gold" / "gold_annotations.json"
+    raw_dir = base_data / "raw"
 
-    if not MANIFEST_FILE.exists():
-        raise FileNotFoundError(f"Manifest not found: {MANIFEST_FILE}. Run generate_dataset.py first.")
+    processed_file.parent.mkdir(parents=True, exist_ok=True)
+    rejected_file.parent.mkdir(parents=True, exist_ok=True)
+    raw_dir.mkdir(parents=True, exist_ok=True)
 
-    with open(MANIFEST_FILE, "r", encoding="utf-8") as f:
+    if not manifest_file.exists():
+        raise FileNotFoundError(f"Manifest not found: {manifest_file}. Run generate_dataset.py first.")
+
+    with open(manifest_file, "r", encoding="utf-8") as f:
         tasks = json.load(f)
 
     gold_map = {}
-    if GOLD_FILE.exists():
-        with open(GOLD_FILE, "r", encoding="utf-8") as f:
+    if gold_file.exists():
+        with open(gold_file, "r", encoding="utf-8") as f:
             for g in json.load(f):
                 gold_map[g["task_id"]] = g
 
@@ -495,17 +503,17 @@ def simulate_enterprise_operations(
     rejected_records.sort(key=lambda r: r["timestamp"])
 
     # Stream to JSONL files
-    print(f"[Simulation] Writing {len(clean_records):,} validated records -> {PROCESSED_FILE}...")
-    with open(PROCESSED_FILE, "w", encoding="utf-8") as f:
+    print(f"[Simulation] Writing {len(clean_records):,} validated records -> {processed_file}...")
+    with open(processed_file, "w", encoding="utf-8") as f:
         for r in clean_records:
             f.write(json.dumps(r, separators=(",", ":")) + "\n")
 
-    print(f"[Simulation] Writing {len(rejected_records):,} rejected audit records -> {REJECTED_FILE}...")
-    with open(REJECTED_FILE, "w", encoding="utf-8") as f:
+    print(f"[Simulation] Writing {len(rejected_records):,} rejected audit records -> {rejected_file}...")
+    with open(rejected_file, "w", encoding="utf-8") as f:
         for r in rejected_records:
             f.write(json.dumps(r, separators=(",", ":")) + "\n")
 
-    print(f"[Simulation] Wrote {raw_sample_written} sample raw JSON files into {RAW_DIR} for workstation testing.")
+    print(f"[Simulation] Wrote {raw_sample_written} sample raw JSON files into {raw_dir} for workstation testing.")
 
     return {
         "clean_count": len(clean_records),
