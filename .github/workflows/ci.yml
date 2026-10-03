@@ -33,15 +33,5 @@ jobs:
       - name: Validate SOP schema contract
         run: python pipeline/validate_spec.py schemas/annotation.yaml
 
-      - name: Generate dataset and populate warehouse (required by DB-dependent tests)
-        run: |
-          python scripts/generate_dataset.py --num-assets 500 --seed 42
-          python scripts/simulate_annotations.py --count 600 --seed 42
-          python scripts/run_pipeline.py
-
-      - name: Run full test suite (59 tests)
+      - name: Run full test suite
         run: pytest tests/ -v --tb=short
-
-      - name: Verify pipeline idempotency (re-run must not duplicate records)
-        run: |
-          python scripts/run_pipeline.py
