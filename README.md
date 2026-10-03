@@ -1,8 +1,9 @@
-﻿# AnnotationOps — SOP-to-Annotation Quality Analytics
+# AnnotationOps — SOP-to-Annotation Quality Analytics
 
 > **Enterprise-grade annotation operations analytics system** — SOP contract enforcement → multi-stage validation firewall → SQLite warehouse → statistical quality science → live Streamlit executive dashboard.
 
-![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+[![CI](https://github.com/Manipalsai/AnnotationOps-SOP-to-Annotation-Quality-Analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/Manipalsai/AnnotationOps-SOP-to-Annotation-Quality-Analytics/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.32+-FF4B4B?logo=streamlit&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-59%20passing-22c55e?logo=pytest&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-Warehouse-003B57?logo=sqlite&logoColor=white)
