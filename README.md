@@ -1,300 +1,296 @@
-# ANNOTATIONOPS
-### SOP-to-Annotation Pipeline & Quality Analytics Dashboard
+﻿# AnnotationOps — SOP-to-Annotation Quality Analytics
 
-[![CI Pipeline & Automated Quality Gate](https://github.com/manip/ANNOTATIONOPS/actions/workflows/ci.yml/badge.svg)](https://github.com/manip/ANNOTATIONOPS/actions/workflows/ci.yml)
-[![Python 3.11 | 3.12 | 3.13](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code Style: Modular & Typed](https://img.shields.io/badge/code%20style-pydantic%20%7C%20typed-teal)](https://pydantic.dev)
-[![Tests: 44 Passed](https://img.shields.io/badge/tests-44%20passed%20%7C%20100%25-brightgreen)](tests/)
+> **Enterprise-grade annotation operations analytics system** — SOP contract enforcement → multi-stage validation firewall → SQLite warehouse → statistical quality science → live Streamlit executive dashboard.
 
----
-
-## 1. Project Overview
-
-**AnnotationOps** is an end-to-end data operations and quality engineering system designed to model a real-world enterprise **Science Annotation Operations** environment. It demonstrates how human operational guidelines (SOPs) are converted into machine-enforceable contracts, audited through multi-tier validation gates, ingested into a relational analytics warehouse, and evaluated through statistical quality science metrics (Cohen's Kappa, confusion matrices, and throughput cycle times).
-
-Targeted specifically at **Science Annotation Operations Analyst** and **Annotation Operations Lead** roles, this project replaces ad-hoc spreadsheet tracking with an automated, auditable, and reproducible operational pipeline.
-
-> [!NOTE]
-> **Dataset Transparency Notice:**
-> All product image assets and annotation records in this demonstration repository were deterministically generated using Python (`Pillow`, random seed `42`) to provide a self-contained, reproducible, and copyright-free portfolio evaluation. The system is completely **dataset-agnostic** and can ingest any external directory of real product imagery without pipeline modifications (see [docs/DATASET.md](docs/DATASET.md)).
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.32+-FF4B4B?logo=streamlit&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-59%20passing-22c55e?logo=pytest&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-Warehouse-003B57?logo=sqlite&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-94a3b8)
 
 ---
 
-## 2. Business Problem & Scenario
+## 📌 What This Project Is
 
-In e-commerce reverse logistics and vision-inspection AI, customer returns must be accurately graded into one of three primary conditions:
-- **`NEW`**: Unopened merchandise with pristine retail packaging and 100% intact manufacturer seals.
-- **`OPEN_BOX`**: Undamaged physical item, but factory seal is broken or packaging has been unsealed.
-- **`DAMAGED`**: Visible structural carton puncture, corner crushing, liquid saturation, or product fracture.
+AnnotationOps demonstrates the **full lifecycle** of an enterprise annotation operations system built from scratch:
 
-### The Operational Challenge
-Unstructured guidelines lead to three critical failure modes in annotation operations:
-1. **Subjective Guidelines**: Annotators confuse minor cosmetic handling marks with structural damage, causing low Inter-Annotator Agreement (IAA).
-2. **Missing Validation Gates**: Incomplete conditional fields (e.g. marking an item `DAMAGED` without recording damage type or description) slip into clean datasets, corrupting ML training sets.
-3. **Siloed Analytics**: Operations teams measure only throughput, while science teams measure only model accuracy, leaving guideline ambiguity and annotator fatigue undetected.
+```
+SOP YAML Contract
+      ↓
+Raw Annotation Submissions (immutable point-in-time JSONs)
+      ↓
+4-Stage Validation Firewall  →  Rejection Audit Sink
+      ↓
+SQLite Analytics Warehouse (7 relational tables)
+      ↓
+Metrics Engine (Kappa · F1 · SLA Variance · IAA)
+      ↓
+Streamlit Executive Dashboard (5 pages · global filters · no hardcoded numbers)
+```
+
+> **Disclosure:** All data is **fully synthetic and deterministic** (`seed=42`). No real annotators, products, or proprietary data are included.
 
 ---
 
-## 3. System Architecture & Workflow
+## 🖥️ Dashboard — 5 Analytical Views
 
-```mermaid
-flowchart TD
-    subgraph Governance ["1. SOP & Specification Layer"]
-        SOP["SOP Document<br/>(docs/SOP.md)"]
-        SpecContract["YAML Spec Contract<br/>(schemas/annotation.yaml)"]
-        SpecValidator["Spec Validator<br/>(pipeline/validate_spec.py)"]
-        PydanticModels["Domain Models<br/>(schemas/models.py)"]
-        SOP --> SpecContract --> SpecValidator --> PydanticModels
-    end
+All metrics, KPI cards, charts, and tables respond **dynamically** to 6 global sidebar filters. Zero hardcoded numbers.
 
-    subgraph Collection ["2. Data Collection & Workstation"]
-        Images["Synthetic Dataset<br/>(data/manifest_tasks.json)"]
-        WorkstationUI["Dynamic Workstation UI<br/>(app/annotation/static/)"]
-        WorkstationAPI["REST API Server<br/>(app/annotation/server.py)"]
-        RawSink[("Raw Immutable Submissions<br/>data/raw/*.json")]
-        Images --> WorkstationAPI <--> WorkstationUI
-        WorkstationUI -->|JSON Submissions| WorkstationAPI --> RawSink
-    end
+| # | Tab | What You See |
+|---|-----|-------------|
+| 1 | **Operations Overview** | Queue velocity, 12-week backlog waterfall, completion SLAs, task status donut |
+| 2 | **Quality Science & Agreement** | Gold accuracy, Cohen's Kappa (κ), Macro F1, confusion matrix, difficulty tier breakdown |
+| 3 | **Annotator Performance** | Per-annotator scorecards: cycle time, rejection rate, rework rate, gold accuracy |
+| 4 | **Data Quality & Rejections** | Firewall audit log, rejection codes, validation stage failure breakdown |
+| 5 | **Operational & Quality Trends** | 12-week throughput, accuracy drift, cycle time evolution, SLA target vs. actual variance |
 
-    subgraph Pipeline ["3. Ingestion & Validation Pipeline"]
-        PipelineRunner["Pipeline Orchestrator<br/>(scripts/run_pipeline.py)"]
-        ValidationEngine["Multi-Stage Validator<br/>(pipeline/validate.py)"]
-        RejectionSink[("Rejection Audit Sink<br/>data/rejected/*.jsonl")]
-        CleanSink[("Clean Warehouse Staging<br/>data/processed/*.jsonl")]
-        RawSink --> PipelineRunner --> ValidationEngine
-        ValidationEngine -->|Fails Any Gate| RejectionSink
-        ValidationEngine -->|Passes All Gates| CleanSink
-    end
+### Global Sidebar Filters
 
-    subgraph Warehouse ["4. Relational Warehouse & SQL Layer"]
-        DBLoader["Warehouse Loader<br/>(pipeline/database.py)"]
-        SQLiteWarehouse[("Relational Warehouse<br/>SQLite: tasks, annotators,<br/>annotations, gold, audit")]
-        SQLIntegrity["SQL Quality Checks<br/>(sql/quality_checks.sql)"]
-        MetricsEngine["Quality Science Engine<br/>(pipeline/metrics.py)"]
-        CleanSink --> DBLoader
-        RejectionSink --> DBLoader
-        DBLoader --> SQLiteWarehouse
-        SQLiteWarehouse --> SQLIntegrity
-        SQLiteWarehouse --> MetricsEngine
-    end
+| Filter | Scope |
+|--------|-------|
+| Date Range | Narrows all views by annotation timestamp |
+| Annotator ID | Multi-select: any subset of the 12-person workforce |
+| Product Category | 8 categories (Electronics, Clothing, Home & Garden…) |
+| Condition Label | NEW · OPEN_BOX · DAMAGED |
+| Task Difficulty | EASY · MEDIUM · HARD |
+| Operational Status | COMPLETED · PENDING · REWORK · ESCALATED |
 
-    subgraph Dashboard ["5. Executive Reporting Dashboard"]
-        StreamlitDashboard["Streamlit Analytics Dashboard<br/>(app/dashboard/app.py)"]
-        MetricsEngine --> StreamlitDashboard
-        SQLiteWarehouse --> StreamlitDashboard
-    end
+**🔄 Clear / Reset All Filters** button restores full-dataset defaults instantly.
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  SYNTHETIC DATA GENERATION (seed=42)                        │
+│  5,000 product assets  ·  12-annotator workforce            │
+└──────────────────────────┬──────────────────────────────────┘
+                           ↓
+┌──────────────────────────┴──────────────────────────────────┐
+│  4-STAGE VALIDATION FIREWALL  (pipeline/validate.py)        │
+│  Stage 1: Schema & Null Checks                              │
+│  Stage 2: Categorical Vocabulary Enforcement                │
+│  Stage 3: SOP Conditional Business Rules                    │
+│  Stage 4: Anomaly Screening & Time Bounds                   │
+│       ↓ PASS                       ↓ FAIL                   │
+│  clean_annotations.jsonl    rejection_audit table           │
+└──────────────────────────┬──────────────────────────────────┘
+                           ↓
+┌──────────────────────────┴──────────────────────────────────┐
+│  SQLITE ANALYTICS WAREHOUSE  (data/annotationops.db)        │
+│  tasks · annotators · annotations · gold_annotations        │
+│  rejection_audit · operational_events · simulation_targets  │
+└──────────────────────────┬──────────────────────────────────┘
+                           ↓
+┌──────────────────────────┴──────────────────────────────────┐
+│  METRICS ENGINE + SQL ANALYTICS LIBRARY                     │
+│  Cohen's Kappa · Macro F1 · SLA Variance · IAA              │
+└──────────────────────────┬──────────────────────────────────┘
+                           ↓
+┌──────────────────────────┴──────────────────────────────────┐
+│  STREAMLIT EXECUTIVE DASHBOARD  (app/dashboard/app.py)      │
+│  5 pages · 6 global filters · dynamic metrics               │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Technology Stack
+## 📂 Repository Structure
 
-- **Data Engineering & Pipeline**: Python 3.13, Pandas 2.2, Pydantic 2.13, PyYAML 6.0
-- **Relational Warehouse & SQL**: SQLite (PostgreSQL-compatible DDL), Indexed Schemas, Stored Analytical SQL
-- **Quality Science & Agreement**: Scikit-Learn (Cohen's Kappa, Confusion Matrices), SciPy, NumPy
-- **Annotation Workstation Interface**: HTML5, Vanilla CSS3, JavaScript (ES6+), Starlette, Uvicorn
-- **Executive Analytics Dashboard**: Streamlit 1.32+, Plotly Express, Dark Glassmorphism CSS
-- **Testing & Quality Assurance**: pytest 8.x, pytest-cov, Starlette TestClient, Ingestion Ledgers
-- **CI/CD & Containerization**: GitHub Actions Matrix (Ubuntu + Windows), Docker, Dockerfile
-
----
-
-## 5. Standard Operating Procedure (SOP) & Conditional Logic Contract
-
-The operational guidelines ([docs/SOP.md](docs/SOP.md)) establish a strict decision hierarchy:
-$$\text{DAMAGED (Priority 1)} \longrightarrow \text{OPEN\_BOX (Priority 2)} \longrightarrow \text{NEW (Priority 3)}$$
-
-### Conditional Logic Enforcement Matrix
-| Primary Condition | `packaging_condition` | `seal_condition` | `damage_type` | `damage_severity` | `description` |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **`NEW`** | ❌ FORBIDDEN | ❌ FORBIDDEN | ❌ FORBIDDEN | ❌ FORBIDDEN | ❌ FORBIDDEN |
-| **`OPEN_BOX`** | ✅ **REQUIRED** | ✅ **REQUIRED** | ❌ FORBIDDEN | ❌ FORBIDDEN | ❌ FORBIDDEN |
-| **`DAMAGED`** | ❌ FORBIDDEN | ❌ FORBIDDEN | ✅ **REQUIRED** | ✅ **REQUIRED** | ✅ **REQUIRED** ($\ge 10$ chars) |
-
-Violations of this matrix are blocked at ingestion with machine-readable rejection reason codes (`ERR_CONDITIONAL_FIELD_MISSING`, `ERR_UNEXPECTED_FIELD_PRESENT`).
-
----
-
-## 6. Multi-Stage Automated Validation Pipeline
-
-Submissions pass through 4 automated gates in `pipeline/validate.py`:
-1. **Stage 1 (Structural Schema)**: Non-empty task ID, annotator ID, valid ISO-8601 UTC timestamp.
-2. **Stage 2 (Categorical Integrity)**: Primary label and secondary attributes match declared controlled vocabulary enums.
-3. **Stage 3 (Conditional Business Rules)**: Enforces required vs. forbidden secondary fields and checks minimum description length.
-4. **Stage 4 (Operational Integrity & Anomalies)**:
-   - Rejects physically impossible cycle times ($< 0.5\text{s}$ or $> 1800\text{s}$) with `ERR_IMPOSSIBLE_TIME`.
-   - Flags suspicious speed anomalies ($< 2.0\text{s}$) with `WARN_SPEED_ANOMALY_FAST` for supervisor quality review without discarding the record.
-   - Detects and rejects duplicate attempts with `ERR_DUPLICATE_SUBMISSION`.
-
----
-
-## 7. Quality Science & Operational Metrics
-
-The analytical engine (`pipeline/metrics.py`) computes:
-
-### Quality Science Metrics
-- **Gold Benchmark Accuracy**: $\ge 95.0\%$ target consensus against blinded expert benchmarks.
-- **Cohen's Kappa ($\kappa$)**: Chance-corrected inter-rater agreement:
-  $$\kappa = \frac{P_o - P_e}{1 - P_e} \quad (\text{Target } \ge 0.85)$$
-- **Confusion Matrix & Precision / Recall**: Pinpoints systematic category confusions.
-- **Error Stratification by Difficulty**: Performance across `EASY`, `MEDIUM`, and `HARD` task tiers.
-
-### Operational KPIs
-- **Throughput & Velocity**: Completed volume, pending backlog, and completion rate %.
-- **Cycle Time Analysis**: Mean, median, minimum, and maximum processing duration per task.
-- **Pipeline Rejection Rate**: Ratio of rejected submissions to total attempts (Target $< 5.0\%$).
+```
+ANNOTATIONOPS/
+├── app/
+│   ├── dashboard/app.py              # Streamlit 5-page executive dashboard
+│   └── annotation/static/index.html  # Annotator workstation UI
+├── pipeline/
+│   ├── validate.py                   # 4-stage SOP validation firewall
+│   ├── validate_spec.py              # YAML schema contract parser
+│   ├── database.py                   # SQLite warehouse loader & schema
+│   └── metrics.py                    # Kappa · F1 · SLA metrics engine
+├── scripts/
+│   ├── generate_dataset.py           # Synthetic asset generator (seed=42)
+│   ├── simulate_annotations.py       # 12-annotator simulation (25K events)
+│   ├── run_pipeline.py               # End-to-end pipeline orchestrator
+│   └── backfill.py                   # Historical data backfill utility
+├── sql/
+│   ├── operational_metrics.sql       # Throughput, backlog, completion KPIs
+│   ├── annotator_metrics.sql         # Per-annotator scorecards
+│   ├── quality_science.sql           # Accuracy, Kappa, IAA analytics
+│   ├── data_quality_audit.sql        # Rejection firewall audit queries
+│   └── quality_checks.sql            # Gold benchmark integrity checks
+├── tests/
+│   ├── unit/                         # 10 unit test modules (49 tests)
+│   └── integration/                  # 2 integration test modules (10 tests)
+├── docs/
+│   ├── ARCHITECTURE.md               # System design, data lineage, Mermaid
+│   ├── METRICS.md                    # Math formulations & SLA references
+│   ├── DATA_DICTIONARY.md            # Full warehouse schema & field types
+│   ├── DATA_GENERATION.md            # Synthetic generation methodology
+│   └── TESTING.md                    # Test suite structure & coverage
+├── schemas/annotation.yaml           # Machine-enforceable SOP contract v1.0.0
+├── .streamlit/config.toml            # Dark theme & server config
+├── Dockerfile                        # Production container (python:3.13-slim)
+├── requirements.txt                  # Python dependencies
+└── pytest.ini                        # Test runner config
+```
 
 ---
 
-## 8. Relational Database Schema & SQL Layer
+## 📊 Dataset at a Glance
 
-Stored in `data/annotationops.db` and queried via documented SQL scripts in `sql/`:
-- `tasks`: Catalog of operational units with category and SKU.
-- `annotators`: Auditor roster with roles and active status.
-- `annotations`: Clean, verified records with `UNIQUE(task_id, annotator_id)`.
-- `gold_annotations`: Blinded ground-truth benchmark set.
-- `rejection_audit`: Audit trail capturing error codes, failure stages, and raw payloads.
+| Entity | Count |
+|--------|-------|
+| Product catalog assets | **5,000** |
+| Simulated annotation events | **~25,000** |
+| Validated clean annotations | **~24,983** |
+| Firewall-blocked rejections | **~893** |
+| Gold benchmark records | **400** |
+| Annotator workforce personas | **12** |
+| Operational scenario weeks | **12** |
+| SLA simulation targets | **5** |
 
-### Key Analytical SQL Scripts
-- [`sql/quality_checks.sql`](sql/quality_checks.sql): Verifies zero duplicates, zero null identifiers, and zero conditional violations.
-- [`sql/operational_metrics.sql`](sql/operational_metrics.sql): Computes throughput, backlog, and cycle time statistics.
-- [`sql/annotator_metrics.sql`](sql/annotator_metrics.sql): Evaluates auditor productivity, rejection rate, and gold accuracy.
+**Annotators:** 12 personas across 4 teams (Alpha, Beta, Delta, Gamma), 3 experience levels (Junior/Mid/Senior), 2 shifts (Morning/Evening).
 
----
-
-## 9. Streamlit Executive Dashboard
-
-The interactive multi-page dashboard (`app/dashboard/app.py`) provides:
-- **Page 1: Operations Overview**: Real-time queue completion rates, pending backlog, cycle times, and category breakdown.
-- **Page 2: Quality Science & Agreement**: Gold-set accuracy, Cohen's Kappa, confusion matrix heatmap, and accuracy by difficulty.
-- **Page 3: Annotator Performance**: Workforce leaderboard, cycle time scatter plots, and individual quality tiers.
-- **Page 4: Data Quality & Rejections**: Upstream gate failure distribution, error code Pareto chart, and live rejection audit log.
-- **Page 5: Operational & Quality Trends**: Longitudinal volume tracking, cycle time stability, and day-over-day accuracy trends.
-
-Every analytical view features **Diagnostic Narrative Callouts** structured around:
-- 🔍 **WHAT HAPPENED?**
-- 💡 **WHY IT MATTERS?**
-- 🎯 **WHERE IS THE ISSUE?**
-- 🛠️ **RECOMMENDED INVESTIGATION**
+**Product Categories:** Electronics · Clothing · Home & Garden · Books · Toys · Sports · Health & Beauty · Automotive
 
 ---
 
-## 10. Automated Testing & Idempotency Guarantee
+## 🔒 SOP Contract & Validation Logic
 
-The test suite contains **44 automated tests** with 100% pass rate:
-- **Specification Tests (`test_spec_validation.py`)**: 11 unit tests.
-- **Domain Model Tests (`test_models.py`)**: 10 unit tests.
-- **Dataset Tests (`test_dataset_generation.py`)**: 4 unit tests.
-- **Metrics Tests (`test_metrics.py`)**: 6 unit tests.
-- **Dashboard Tests (`test_dashboard.py`)**: 3 smoke tests.
-- **Workstation API Tests (`test_workstation_api.py`)**: 8 integration tests.
-- **Pipeline Integration Tests (`test_pipeline.py`)**: 2 end-to-end tests.
+Schema defined in `schemas/annotation.yaml` (v1.0.0). Conditionally enforced per label:
 
-### Idempotency Standard
-The pipeline uses an **ingestion ledger** (`data/processed/.ingested_files.json`) and database unique constraints. Running the pipeline multiple times processes newly arrived records only, preventing duplicate database records or distorted analytics.
+```
+NEW        → all secondary fields MUST be null
+OPEN_BOX   → packaging_condition + seal_condition required; damage fields forbidden
+DAMAGED    → damage_type + damage_severity + description (≥10 chars) required
+```
+
+**Hard rejection bounds:** `processing_time_seconds ∈ [0.5s, 1800.0s]`  
+**Audit flag:** `< 3.0s` → `WARN_SPEED_ANOMALY_FAST`
 
 ---
 
-## 11. Quickstart & How to Run Locally
+## 📈 Metrics & SLA Targets
 
-### Prerequisites
-- Python 3.11, 3.12, or 3.13
-- Git
+| Metric | Formula | Target |
+|--------|---------|--------|
+| Completion Rate | Completed / Total × 100 | ≥ 85.0% |
+| Pipeline Rejection Rate | Rejected / (Valid + Rejected) × 100 | ≤ 3.0% |
+| Avg Cycle Time | Σ duration / N | ≤ 12.0s |
+| Gold Benchmark Accuracy | Correct / Gold Evaluated × 100 | ≥ 95.0% |
+| Cohen's Kappa (κ) | (Po − Pe) / (1 − Pe) | ≥ 0.85 |
+| Macro F1-Score | Mean of per-class F1 scores | — |
+| Rework Rate | Rework / Completed × 100 | ≤ 5.0% |
+| Escalation Rate | Escalated / Total × 100 | ≤ 3.0% |
+| Backlog Invariant | Total = Completed + Pending | ✅ Reconciled |
 
-### 1. Clone & Set Up Environment
+---
+
+## ⚡ Quick Start
+
 ```bash
-git clone https://github.com/manip/ANNOTATIONOPS.git
-cd ANNOTATIONOPS
+# 1. Clone
+git clone https://github.com/Manipalsai/AnnotationOps-SOP-to-Annotation-Quality-Analytics.git
+cd AnnotationOps-SOP-to-Annotation-Quality-Analytics
 
-# Create and activate virtual environment
+# 2. Virtual environment
 python -m venv .venv
-# On Windows:
-.venv\Scripts\activate
-# On Linux/macOS:
-source .venv/bin/activate
+.venv\Scripts\activate          # Windows
+# source .venv/bin/activate     # macOS/Linux
 
-# Install dependencies
+# 3. Install dependencies
 pip install -r requirements.txt
-```
 
-### 2. Run Automated Tests
-```bash
-pytest -v
-```
-
-### 3. Generate Baseline Dataset & Run Pipeline
-```bash
-# 1. Generate synthetic product images and gold standard benchmarks (seed=42)
-python scripts/generate_dataset.py --num-tasks 120 --seed 42
-
-# 2. Simulate multi-annotator operational submissions with edge cases
-python scripts/simulate_annotations.py --count 110 --seed 42
-
-# 3. Execute validation, loading, SQL integrity checks, and metrics computation
+# 4. Generate dataset + run pipeline (deterministic, seed=42)
+python scripts/generate_dataset.py --num-assets 5000 --seed 42
+python scripts/simulate_annotations.py --count 25000 --seed 42
 python scripts/run_pipeline.py
-```
 
-### 4. Launch the Interactive Dashboard
-```bash
+# 5. Launch dashboard
 streamlit run app/dashboard/app.py
 ```
-Open [http://localhost:8501](http://localhost:8501) in your browser.
 
-### 5. (Optional) Launch the Human Annotation Workstation
-```bash
-python app/annotation/server.py --port 8000
-```
-Open [http://localhost:8000](http://localhost:8000) to inspect images, grade conditions, and submit annotations in real time.
+Open **http://localhost:8501**
 
 ---
 
-## 12. Docker Deployment
-
-AnnotationOps can be built and run as a standalone Docker container:
+## 🐳 Docker
 
 ```bash
-# Build Docker image
-docker build -t annotationops:latest .
-
-# Run container exposing dashboard on port 8501
-docker run -p 8501:8501 -p 8000:8000 annotationops:latest
+docker build -t annotationops .
+docker run -p 8501:8501 annotationops
 ```
 
-Navigate to [http://localhost:8501](http://localhost:8501) for the Streamlit dashboard.
+Dataset generation and pipeline run automatically during the Docker build.
 
 ---
 
-## 13. Documentation Index
+## 🧪 Tests — 59 Passing
 
-- [docs/SOP.md](docs/SOP.md) - Standard Operating Procedure for Returned Product Condition Classification
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Complete Technical Architecture & System Design Document
-- [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md) - Comprehensive Field Definitions, Enums & Rejection Codes
-- [docs/DATASET.md](docs/DATASET.md) - Synthetic Dataset Design, Seed Control, and Real-World Substitution Guide
-- [docs/TESTING.md](docs/TESTING.md) - Automated Testing Protocol & QA Verification Standards
+```bash
+pytest tests/ -v                          # all 59 tests
+pytest tests/ --cov=pipeline              # with coverage
+pytest tests/unit/ -v                     # unit only
+pytest tests/integration/ -v             # integration only
+```
+
+| Module | Tests | What It Covers |
+|--------|-------|----------------|
+| `test_models.py` | 10 | Pydantic annotation model validation |
+| `test_spec_validation.py` | 11 | YAML schema contract & SOP rules |
+| `test_dataset_generation.py` | 4 | Deterministic reproducibility |
+| `test_metrics.py` | 6 | Kappa, rejection rate, cycle time engine |
+| `test_dynamic_filters.py` | 4 | Global filter correctness |
+| `test_backlog_reconciliation.py` | 3 | Waterfall identity invariant |
+| `test_f1_score.py` | 3 | F1 / precision / recall |
+| `test_sla_and_variance.py` | 2 | SLA target vs. actual variance |
+| `test_sql_analytics.py` | 1 | SQL analytics execution |
+| `test_dashboard.py` | 3 | Dashboard import & render |
+| `test_workstation_api.py` | 8 | Annotation API endpoints |
+| `test_pipeline_performance.py` | 2 | End-to-end pipeline benchmarks |
 
 ---
 
-## 14. Implemented vs. Planned Enhancements
+## 🔧 Tech Stack
 
-### Implemented Functionality (Production Ready)
-- [x] Standard Operating Procedure with hierarchical decision rules.
-- [x] Structured YAML specification contract and automated spec validator.
-- [x] Pydantic domain models enforcing conditional business logic.
-- [x] Deterministic synthetic dataset generator with seed control (`seed=42`).
-- [x] Blinded gold-standard benchmark set with difficulty stratification.
-- [x] Human annotation workstation with dynamic conditional fields and pacing timer.
-- [x] Multi-stage ingestion, validation, and rejection audit pipeline.
-- [x] Relational warehouse (SQLite) with indexed tables and foreign keys.
-- [x] Automated SQL data quality integrity checks asserting zero violations.
-- [x] Quality science engine computing Cohen's Kappa, confusion matrices, and throughput KPIs.
-- [x] 5-page Streamlit analytics dashboard with narrative diagnostic callouts.
-- [x] Idempotent execution and historical backfill script.
-- [x] 44 automated pytest unit and integration tests passing with 100% success.
-- [x] GitHub Actions CI workflow running multi-OS matrix tests.
-- [x] Production Dockerfile and complete technical documentation.
+| Layer | Technology |
+|-------|-----------|
+| Language | Python 3.13 |
+| Dashboard | Streamlit 1.32+ |
+| Visualisation | Plotly 5.19+ |
+| Data Processing | Pandas 2.2+ · NumPy 1.26+ |
+| Quality Science | scikit-learn 1.4+ |
+| Schema Validation | Pydantic 2.6+ · PyYAML 6.0+ |
+| Database | SQLite (`sqlite3`) |
+| Testing | pytest 8.0+ · pytest-cov 4.1+ |
+| Containerisation | Docker (python:3.13-slim) |
+| CI/CD | GitHub Actions |
 
-### Planned Enhancements (Future Scope)
-- [ ] Active Learning queue re-ranking to prioritize high-uncertainty returned items.
-- [ ] Multi-tenant role-based access control (RBAC) with OAuth2 / SSO integration.
-- [ ] Optional cloud event-driven ingestion using AWS S3 upload events and AWS Lambda validation workers.
+---
+
+## 📚 Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System design, Mermaid diagram, data lineage, CI/CD |
+| [`docs/METRICS.md`](docs/METRICS.md) | Full math formulations, Cohen's Kappa, F1, SLA reference |
+| [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md) | All 7 warehouse tables with column types |
+| [`docs/DATA_GENERATION.md`](docs/DATA_GENERATION.md) | Synthetic generation & persona design methodology |
+| [`docs/TESTING.md`](docs/TESTING.md) | Test suite strategy and coverage guide |
+| [`schemas/annotation.yaml`](schemas/annotation.yaml) | SOP contract v1.0.0 |
+
+---
+
+## 📄 License
+
+MIT — see [`LICENSE`](LICENSE)
+
+---
+
+## 👤 Author
+
+**Sai Manikanta** · [@Manipalsai](https://github.com/Manipalsai)
+
+> *Portfolio project demonstrating enterprise data engineering, annotation quality science, operational analytics, and full-stack dashboard development.*
