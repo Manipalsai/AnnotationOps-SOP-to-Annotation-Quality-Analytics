@@ -1,4 +1,4 @@
-﻿name: CI — Automated Quality Gate
+name: CI — Automated Quality Gate
 
 on:
   push:
@@ -32,6 +32,9 @@ jobs:
 
       - name: Validate SOP schema contract
         run: python pipeline/validate_spec.py schemas/annotation.yaml
+
+      - name: Generate synthetic dataset & baseline
+        run: python scripts/generate_dataset.py --output-dir data --seed 42
 
       - name: Run full test suite
         run: pytest tests/ -v --tb=short

@@ -47,7 +47,9 @@ def test_get_spec(client):
 
 def test_get_image(client):
     """GET /api/images/{filename} returns the image asset."""
-    response = client.get("/api/images/img_0001.png")
+    images = list(Path("data/images").glob("*.png"))
+    filename = images[0].name if images else "img_00001.png"
+    response = client.get(f"/api/images/{filename}")
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/png"
 

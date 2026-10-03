@@ -1,4 +1,4 @@
-﻿"""
+"""
 Shared pytest fixtures for AnnotationOps test suite.
 Provides a self-contained SQLite test database built from the real schema
 using deterministic seed data — no pre-generated files required.
@@ -151,6 +151,18 @@ def _build_test_db(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def ensure_dataset():
+    """Ensure data/manifest_tasks.json and sample images exist for dataset tests."""
+    manifest_path = Path("data/manifest_tasks.json")
+    gold_path = Path("data/gold/gold_annotations.json")
+    images_dir = Path("data/images")
+    has_images = images_dir.exists() and any(images_dir.glob("*.png"))
+    if not manifest_path.exists() or not gold_path.exists() or not has_images:
+        from scripts.generate_dataset import generate_synthetic_dataset
+        generate_synthetic_dataset("data", num_tasks=5000, seed=42)
+
+
 @pytest.fixture(scope="session")
 def test_db_path(tmp_path_factory) -> Path:
     """
@@ -171,3 +183,4 @@ def test_db_conn(test_db_path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(test_db_path))
     yield conn
     conn.close()
+
