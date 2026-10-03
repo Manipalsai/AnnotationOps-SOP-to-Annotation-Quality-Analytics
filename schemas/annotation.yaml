@@ -1,0 +1,117 @@
+task:
+  name: "returned_product_condition"
+  version: "1.0.0"
+  description: "Classification of returned e-commerce product condition and defect attribution based on SOP-OPS-2026-001"
+  effective_date: "2026-10-01"
+  benchmarks:
+    target_accuracy: 0.95
+    target_kappa: 0.85
+    min_nominal_time_seconds: 3.0
+    anomaly_fast_time_seconds: 2.0
+    anomaly_slow_time_seconds: 300.0
+
+labels:
+  - NEW
+  - OPEN_BOX
+  - DAMAGED
+
+fields:
+  packaging_condition:
+    type: enum
+    description: "Physical state of the retail product carton or container"
+    allowed_values:
+      - INTACT
+      - WORN
+      - MISSING
+    default: null
+
+  seal_condition:
+    type: enum
+    description: "Integrity of the manufacturer tamper-evident sticker or seal"
+    allowed_values:
+      - BROKEN
+      - MISSING
+      - RESEALED
+    default: null
+
+  damage_type:
+    type: enum
+    description: "Primary physical structural failure observed on the item or box"
+    allowed_values:
+      - CRUSHED_BOX
+      - TEAR_PUNCTURE
+      - LIQUID_STAIN
+      - ITEM_DEFECT
+    default: null
+
+  damage_severity:
+    type: enum
+    description: "Functional and cosmetic impact of the observed damage"
+    allowed_values:
+      - MINOR
+      - MODERATE
+      - SEVERE
+    default: null
+
+  description:
+    type: string
+    description: "Objective factual description of observed damage"
+    min_length: 10
+    max_length: 250
+    default: null
+
+conditional_rules:
+  NEW:
+    required_fields: []
+    forbidden_fields:
+      - packaging_condition
+      - seal_condition
+      - damage_type
+      - damage_severity
+      - description
+
+  OPEN_BOX:
+    required_fields:
+      - packaging_condition
+      - seal_condition
+    forbidden_fields:
+      - damage_type
+      - damage_severity
+      - description
+
+  DAMAGED:
+    required_fields:
+      - damage_type
+      - damage_severity
+      - description
+    forbidden_fields:
+      - packaging_condition
+      - seal_condition
+
+metadata_fields:
+  task_id:
+    type: string
+    required: true
+    description: "Globally unique identifier for the annotation task"
+  image_id:
+    type: string
+    required: true
+    description: "Identifier of the visual image asset evaluated"
+  annotator_id:
+    type: string
+    required: true
+    description: "Identifier of the human annotator or audit analyst"
+  annotation_timestamp:
+    type: datetime
+    required: true
+    description: "ISO-8601 UTC timestamp of submission"
+  processing_time_seconds:
+    type: float
+    required: true
+    min_value: 0.1
+    max_value: 1800.0
+    description: "Elapsed duration in seconds spent on the annotation task"
+  schema_version:
+    type: string
+    required: true
+    description: "Version of the specification contract used for submission"

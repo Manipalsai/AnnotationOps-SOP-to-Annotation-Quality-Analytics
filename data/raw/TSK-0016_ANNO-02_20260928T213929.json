@@ -1,0 +1,14 @@
+{
+  "task_id": "TSK-0016",
+  "image_id": "img_0016.png",
+  "annotator_id": "ANNO-02",
+  "condition": "OPEN_BOX",
+  "packaging_condition": "WORN",
+  "seal_condition": "RESEALED",
+  "damage_type": null,
+  "damage_severity": null,
+  "description": null,
+  "annotation_timestamp": "2026-09-28T21:39:29.765863+00:00",
+  "processing_time_seconds": 10.98,
+  "schema_version": "1.0.0"
+}

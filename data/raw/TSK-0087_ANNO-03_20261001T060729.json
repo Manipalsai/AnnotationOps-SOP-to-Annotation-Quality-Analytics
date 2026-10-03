@@ -1,0 +1,14 @@
+{
+  "task_id": "TSK-0087",
+  "image_id": "img_0087.png",
+  "annotator_id": "ANNO-03",
+  "condition": "DAMAGED",
+  "packaging_condition": null,
+  "seal_condition": null,
+  "damage_type": "TEAR_PUNCTURE",
+  "damage_severity": "SEVERE",
+  "description": "Visual assessment confirms tear_puncture defect of severe severity on carton.",
+  "annotation_timestamp": "2026-10-01T06:07:29.765863+00:00",
+  "processing_time_seconds": 8.82,
+  "schema_version": "1.0.0"
+}

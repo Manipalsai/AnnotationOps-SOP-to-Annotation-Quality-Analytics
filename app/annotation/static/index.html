@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AnnotationOps | Returned Product Condition Grading</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-badge">SOP-2026-001</span>
+      <h1 class="brand-title">ANNOTATION<span>OPS</span></h1>
+      <span class="brand-subtitle">Return Condition Classification</span>
+    </div>
+
+    <div class="header-metrics">
+      <div class="metric-pill">
+        <span class="pill-label">Annotator ID</span>
+        <select id="annotator-select" class="annotator-dropdown">
+          <option value="ANNO-01">ANNO-01 (Auditor Alpha)</option>
+          <option value="ANNO-02">ANNO-02 (Auditor Bravo)</option>
+          <option value="ANNO-03">ANNO-03 (Auditor Charlie)</option>
+          <option value="ANNO-04">ANNO-04 (Lead Specialist)</option>
+        </select>
+      </div>
+
+      <div class="metric-pill">
+        <span class="pill-label">Queue Progress</span>
+        <span id="queue-progress" class="pill-value">Loading...</span>
+      </div>
+
+      <div class="metric-pill">
+        <span class="pill-label">Pacing Timer</span>
+        <span id="task-timer" class="pill-value timer-display">00:00</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workstation Layout -->
+  <main class="workstation">
+    <!-- Left Panel: Inspection Viewer -->
+    <section class="viewport-panel">
+      <div class="viewport-toolbar">
+        <div class="task-info">
+          <span class="task-badge" id="task-id-badge">TSK-0000</span>
+          <span class="sku-badge" id="task-sku-badge">SKU: ---</span>
+          <span class="category-badge" id="task-cat-badge">Category: ---</span>
+        </div>
+        <div class="guideline-link">
+          <button id="sop-toggle-btn" class="secondary-btn" title="View standard operating definitions">
+            📖 View SOP Cheat-Sheet
+          </button>
+        </div>
+      </div>
+
+      <!-- Image Canvas View -->
+      <div class="image-stage">
+        <img id="inspection-image" src="" alt="Returned Product Image" class="product-view">
+        <div class="image-overlay-notice">
+          <span class="watermark-tag">SYNTHETIC DEMONSTRATION ASSET</span>
+        </div>
+      </div>
+
+      <!-- Collapsible SOP Drawer -->
+      <div id="sop-drawer" class="sop-drawer hidden">
+        <div class="drawer-header">
+          <h3>SOP Quick Reference Hierarchy</h3>
+          <button id="sop-close-btn" class="close-btn">&times;</button>
+        </div>
+        <div class="drawer-content">
+          <p><strong>1. DAMAGED (Priority 1):</strong> Structural box tears (>15mm), corner crushing (>10%), liquid saturation, or merchandise fractures.</p>
+          <p><strong>2. OPEN_BOX (Priority 2):</strong> Intact physical structure, but OEM tamper sticker is cut/missing/resealed or carton flap is opened.</p>
+          <p><strong>3. NEW (Priority 3):</strong> Unopened retail packaging, 100% intact green OEM seal, pristine condition.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Panel: Annotation Form & Conditional Logic -->
+    <section class="form-panel">
+      <div class="panel-header">
+        <h2>Grade Product Condition</h2>
+        <p class="panel-desc">Evaluate the item according to the SOP hierarchical guidelines.</p>
+      </div>
+
+      <form id="annotation-form" class="annotation-form" novalidate>
+        <!-- Step 1: Primary Condition Selection -->
+        <fieldset class="form-group primary-condition-group">
+          <legend class="group-legend">1. Select Primary Condition <span class="required">*</span></legend>
+          <div class="radio-card-grid">
+            <label class="radio-card">
+              <input type="radio" name="condition" value="NEW" required>
+              <div class="card-body">
+                <span class="card-indicator new-indicator"></span>
+                <span class="card-title">NEW</span>
+                <span class="card-desc">Factory sealed, pristine packaging, zero damage</span>
+              </div>
+            </label>
+
+            <label class="radio-card">
+              <input type="radio" name="condition" value="OPEN_BOX" required>
+              <div class="card-body">
+                <span class="card-indicator open-indicator"></span>
+                <span class="card-title">OPEN_BOX</span>
+                <span class="card-desc">Seal broken or packaging opened; item undamaged</span>
+              </div>
+            </label>
+
+            <label class="radio-card">
+              <input type="radio" name="condition" value="DAMAGED" required>
+              <div class="card-body">
+                <span class="card-indicator damaged-indicator"></span>
+                <span class="card-title">DAMAGED</span>
+                <span class="card-desc">Structural carton damage, tear, liquid, or fracture</span>
+              </div>
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- Dynamic Conditional Section: OPEN_BOX Branch -->
+        <div id="open-box-branch" class="conditional-branch hidden">
+          <div class="branch-callout">
+            <span class="callout-icon">ℹ️</span>
+            <span>Condition <strong>OPEN_BOX</strong> requires packaging and seal integrity fields.</span>
+          </div>
+
+          <div class="grid-two-col">
+            <div class="form-group">
+              <label for="packaging-condition">Packaging Condition <span class="required">*</span></label>
+              <select id="packaging-condition" name="packaging_condition" class="form-select">
+                <option value="">-- Select Packaging State --</option>
+                <option value="INTACT">INTACT - Clean, opened neatly</option>
+                <option value="WORN">WORN - Creases, scuffs, tape residue</option>
+                <option value="MISSING">MISSING - No retail packaging (loose)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="seal-condition">Seal Condition <span class="required">*</span></label>
+              <select id="seal-condition" name="seal_condition" class="form-select">
+                <option value="">-- Select Seal State --</option>
+                <option value="BROKEN">BROKEN - Adhesive sticker cut/sliced</option>
+                <option value="MISSING">MISSING - Sticker absent or flap unsealed</option>
+                <option value="RESEALED">RESEALED - Clear tape over tape</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Conditional Section: DAMAGED Branch -->
+        <div id="damaged-branch" class="conditional-branch hidden">
+          <div class="branch-callout callout-warning">
+            <span class="callout-icon">⚠️</span>
+            <span>Condition <strong>DAMAGED</strong> requires structural defect attribution.</span>
+          </div>
+
+          <div class="grid-two-col">
+            <div class="form-group">
+              <label for="damage-type">Damage Defect Type <span class="required">*</span></label>
+              <select id="damage-type" name="damage_type" class="form-select">
+                <option value="">-- Select Defect Mechanism --</option>
+                <option value="CRUSHED_BOX">CRUSHED_BOX - Corner collapse / compression</option>
+                <option value="TEAR_PUNCTURE">TEAR_PUNCTURE - Penetration / laceration >15mm</option>
+                <option value="LIQUID_STAIN">LIQUID_STAIN - Moisture saturation / oil mark</option>
+                <option value="ITEM_DEFECT">ITEM_DEFECT - Crack / fracture on merchandise</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="damage-severity">Damage Severity <span class="required">*</span></label>
+              <select id="damage-severity" name="damage_severity" class="form-select">
+                <option value="">-- Select Severity --</option>
+                <option value="MINOR">MINOR - Superficial box flaw only</option>
+                <option value="MODERATE">MODERATE - Box structural loss / product dent</option>
+                <option value="SEVERE">SEVERE - Pierced into contents / soaked / fractured</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="label-with-counter">
+              <label for="damage-description">Visible Defect Description <span class="required">*</span></label>
+              <span id="char-counter" class="char-counter">0 / 250 (min 10)</span>
+            </div>
+            <textarea
+              id="damage-description"
+              name="description"
+              rows="3"
+              class="form-textarea"
+              placeholder="Provide objective visual description (e.g. Left lower corner crushed inward 3cm, retail seal opened)..."
+              maxlength="250"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Real-Time Error Banner -->
+        <div id="validation-errors" class="validation-summary hidden" role="alert">
+          <div class="error-header">Validation Checks Failed:</div>
+          <ul id="error-list" class="error-items"></ul>
+        </div>
+
+        <!-- Status Toast Banner -->
+        <div id="toast-banner" class="toast-banner hidden"></div>
+
+        <!-- Form Actions Toolbar -->
+        <div class="form-actions">
+          <button type="button" id="skip-btn" class="tertiary-btn">Skip / Escalate</button>
+          <button type="submit" id="submit-btn" class="primary-btn">
+            Submit &amp; Next Task &rarr;
+          </button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

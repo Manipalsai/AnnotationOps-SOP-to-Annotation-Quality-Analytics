@@ -1,0 +1,14 @@
+{
+  "task_id": "TSK-0057",
+  "image_id": "img_0057.png",
+  "annotator_id": "ANNO-03",
+  "condition": "DAMAGED",
+  "packaging_condition": null,
+  "seal_condition": null,
+  "damage_type": "CRUSHED_BOX",
+  "damage_severity": "SEVERE",
+  "description": "Visual assessment confirms crushed_box defect of severe severity on carton.",
+  "annotation_timestamp": "2026-09-30T06:40:29.765863+00:00",
+  "processing_time_seconds": 11.36,
+  "schema_version": "1.0.0"
+}

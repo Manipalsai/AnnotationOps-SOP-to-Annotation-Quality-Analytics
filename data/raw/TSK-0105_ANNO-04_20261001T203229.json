@@ -1,0 +1,14 @@
+{
+  "task_id": "TSK-0105",
+  "image_id": "img_0105.png",
+  "annotator_id": "ANNO-04",
+  "condition": "DAMAGED",
+  "packaging_condition": null,
+  "seal_condition": null,
+  "damage_type": "LIQUID_STAIN",
+  "damage_severity": "SEVERE",
+  "description": "Visual assessment confirms liquid_stain defect of severe severity on carton.",
+  "annotation_timestamp": "2026-10-01T20:32:29.765863+00:00",
+  "processing_time_seconds": 7.34,
+  "schema_version": "1.0.0"
+}

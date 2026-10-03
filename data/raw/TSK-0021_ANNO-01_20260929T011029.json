@@ -1,0 +1,14 @@
+{
+  "task_id": "TSK-0021",
+  "image_id": "img_0021.png",
+  "annotator_id": "ANNO-01",
+  "condition": "DAMAGED",
+  "packaging_condition": null,
+  "seal_condition": null,
+  "damage_type": "ITEM_DEFECT",
+  "damage_severity": "SEVERE",
+  "description": "Visual assessment confirms item_defect defect of severe severity on carton.",
+  "annotation_timestamp": "2026-09-29T01:10:29.765863+00:00",
+  "processing_time_seconds": 16.45,
+  "schema_version": "1.0.0"
+}

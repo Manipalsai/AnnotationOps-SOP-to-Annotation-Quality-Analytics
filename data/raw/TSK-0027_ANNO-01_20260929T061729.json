@@ -1,0 +1,14 @@
+{
+  "task_id": "TSK-0027",
+  "image_id": "img_0027.png",
+  "annotator_id": "ANNO-01",
+  "condition": "DAMAGED",
+  "packaging_condition": null,
+  "seal_condition": null,
+  "damage_type": "ITEM_DEFECT",
+  "damage_severity": "MINOR",
+  "description": "Visual assessment confirms item_defect defect of minor severity on carton.",
+  "annotation_timestamp": "2026-09-29T06:17:29.765863+00:00",
+  "processing_time_seconds": 19.4,
+  "schema_version": "1.0.0"
+}
